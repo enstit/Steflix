@@ -11,22 +11,27 @@ import numpy as np
 from numpy.linalg import solve
 
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
 class WeightedMatrixFactorization:
-    def __init__(self, ratings, weight_observed=1.0, weight_unobserved=0.1, num_factors=100, lambda_reg=0, num_iterations=10):
+    """
+    Weighted Matrix Factorization model. It uses Alternating Least Squares (ALS) to train the model.
+    """
+
+    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=10):
         """
         Initialize the weighted matrix factorization model.
 
-        Parameters:
-        - ratings: User-item interaction matrix (numpy array) with NaN values.
-        - weight_observed: Weight parameter for observed values.
-        - weight_unobserved: Weight parameter for non-observed values.
-        - num_factors: Number of latent factors for users and items.
-        - lambda_reg: Regularization parameter.
-        - num_iterations: Number of iterations for ALS.
+        Input(s):   - ratings: Ratings matrix.
+                    - weight_observed: Weight for observed ratings. Default: 1.0
+                    - weight_unobserved: Weight for unobserved ratings. Default: 0.1
+                    - num_factors: Number of factors. Default: 100
+                    - lambda_reg: Regularization term. Default: 0.95
+                    - num_iterations: Number of iterations. Default: 10
+
+        Output(s):  - None
         """
         self.ratings = np.nan_to_num(np.array(ratings),0)
         self.observed_data = ~np.isnan(ratings)
@@ -41,13 +46,29 @@ class WeightedMatrixFactorization:
         self.user_matrix = np.random.rand(self.num_users, self.num_factors)
         self.item_matrix = np.random.rand(self.num_items, self.num_factors)
 
-    def fit(self):
+
+    def fit(self, method:str="ALS", **kwargs):
         """
-        Train the weighted matrix factorization model using ALS.
+        Train the weighted matrix factorization model using one of the
+        implemented methods.
+
+        Input(s):   - method: Method to use for training. Default: ALS (Alternating Least Squares)
+                    - **kwargs: Keyword arguments for the training method.
+
+        Output(s):  - None
         """
+
+        if method == "ALS":
+            self.__fit_als(**kwargs)
+        else:
+            raise NotImplementedError(f"Method {method} not supported. Please choose one of the following: ['ALS']")
+
+
+    def __fit_als(self):
+
         for iteration in range(self.num_iterations):
-            self.update_user_matrix()
-            self.update_item_matrix()
+            self.__update_user_matrix()
+            self.__update_item_matrix()
 
             # Calculate the loss (the difference between the observed ratings and the dot product of the user and item vectors)
             loss = np.sum(
@@ -61,7 +82,7 @@ class WeightedMatrixFactorization:
 
         return self.user_matrix, self.item_matrix
 
-    def update_user_matrix(self):
+    def __update_user_matrix(self):
         """
         Update the user matrix using ALS.
         """
@@ -84,11 +105,8 @@ class WeightedMatrixFactorization:
                 self.item_matrix.T @ weight_matrix @ self.ratings[user, :]
             )
             
-            # Solve the system of linear equations using spsolve
-            #self.user_matrix[user, :] = spsolve(self.item_matrix.T @ weight_matrix @ self.item_matrix + regularization,
-            #                                    self.item_matrix.T @ weight_matrix @ self.ratings[user, :])
 
-    def update_item_matrix(self):
+    def __update_item_matrix(self):
         """
         Update the item matrix using ALS.
         """
