@@ -6,6 +6,7 @@ Date:       2024-01-18
 """
 
 
+import pickle
 import logging
 import numpy as np
 from tabulate import tabulate
@@ -19,19 +20,45 @@ logger = logging.getLogger(__name__)
 
 class RecommenderSystem():
 
-    def __init__(self, reviews=None, users=list(), items=list()) -> None:
+    def __init__(self, name:str="", reviews=None, users=list(), items=list()) -> None:
+        self.name = name
         self.users = users
         self.items = items
         self.reviews = reviews
 
         self.user_embedding = None
         self.item_embedding = None
-        self.build_embeddings()
+
+        if reviews is not None:
+            self.build_embeddings()
 
 
     def build_embeddings(self):
         logger.debug("Building embeddings...")
         self.user_embedding, self.item_embedding = WeightedMatrixFactorization(self.reviews).fit()
+
+
+    def save(self, filename:str=None):
+    
+        logger.debug(f"Saving {self.name} to filesystem...")
+
+        if not filename:
+            logger.debug("No filename provided, using default (object_name.pkl)...")
+            filename = f"{self.name}.pkl"
+
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
+
+    def load(self, filename:str=None):
+            
+            logger.debug(f"Loading {self.name} from filesystem...")
+    
+            if not filename:
+                logger.debug("No filename provided, using default (object_name.pkl)...")
+                filename = f"{self.name}.pkl"
+    
+            with open(filename, 'rb') as f:
+                return pickle.load(f)
 
 
     def print_user_chart(self, user:str=None, first_n:int=10):
@@ -76,7 +103,7 @@ class RecommenderSystem():
 
 
 
-    def contentbased_filtering(self, user_embedding, item_embeddings, top_k=5):
+    def contentbased_filtering(self, user_index, top_k=5):
         """
         Recommend top-k items for a user based on user and item embeddings.
 
@@ -88,8 +115,12 @@ class RecommenderSystem():
         Returns:
         - recommended_items: List of top-k recommended item indices
         """
+        
+        # Get the embedding for the target user
+        target_user_embedding = self.user_embedding[user_index].T
+
         # Calculate cosine similarity between the user and all items
-        similarities = cosine_similarity([user_embedding], item_embeddings).flatten()
+        similarities = cosine_similarity([target_user_embedding], self.item_embedding).flatten()
 
         # Get the indices of the top-k items with highest similarity
         recommended_items = np.argsort(similarities)[::-1][:top_k]
@@ -112,7 +143,7 @@ class RecommenderSystem():
         """
 
         # Get the embedding for the target user
-        target_user_embedding = self.user_embedding[user_index].T
+        target_user_embedding = self.user_embedding[user_index]
 
         # Calculate cosine similarity between the target user and all other users
         similarities = cosine_similarity([target_user_embedding], self.user_embedding).flatten()
