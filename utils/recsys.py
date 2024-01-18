@@ -8,6 +8,7 @@ Date:       2024-01-18
 
 import logging
 import numpy as np
+from tabulate import tabulate
 from utils.matfac import WeightedMatrixFactorization
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -29,10 +30,19 @@ class RecommenderSystem():
 
 
     def build_embeddings(self):
+        logger.debug("Building embeddings...")
         self.user_embedding, self.item_embedding = WeightedMatrixFactorization(self.reviews).fit()
 
 
-    def get_user_chart(self, user:str=None):
+    def print_user_chart(self, user:str=None, first_n:int=10):
+
+        user_chart = self.get_user_chart(user, first_n)
+        
+        print(tabulate(zip(range(1,first_n+1), user_chart[:,0], user_chart[:,1]), headers=['Position', 'Movie Name', 'Rating'], tablefmt='rst'))
+
+        return
+
+    def get_user_chart(self, user:str=None, first_n:int=10):
         # Retunr the list of items that the user has reviewed,
         # sorted by the rating
 
@@ -48,14 +58,14 @@ class RecommenderSystem():
         # Get the indices of the items that the user has reviewed
         reviewed_item_indices = np.where(user_ratings > 0)[0]
 
-        user_reviews = [(user_ratings[i], self.items[i]) for i in reviewed_item_indices]
+        user_reviews = [[self.items[i], user_ratings[i]] for i in reviewed_item_indices]
 
-        return sorted(user_reviews, key=lambda x: x[0], reverse=True)
+        return np.array(sorted(user_reviews, key=lambda x: x[1], reverse=True))[:first_n]
 
 
     def get_user_recommendations(self, user:str=None, top_k:int=5):
 
-        if user not in self.users:
+        if user not in self.users.astype(str):
             raise ValueError(f"User {user} not found!")
         
         # Get the user index
