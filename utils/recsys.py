@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """
+Recommender System class to interact with a recommender system that
+uses Weighted Matrix Factorization to build user and item embeddings,
+and provides content-based and collaborative filtering recommendations.
+
 Author(s):  Enrico Stefanel (enrico.stefanel@studenti.units.it)
 Date:       2024-01-18
 """
@@ -23,21 +27,20 @@ class RecommenderSystem():
 
     def __init__(self, name:str="", reviews=None, users=None, items=None) -> None:
         self.name = name
-        self.users = users
-        self.items = items
-        self.reviews = reviews
+        self.users = users if users is not None else []
+        self.items = items if items is not None else []
+        self.reviews = reviews if reviews is not None else np.array([])
 
-        self.user_embedding = None
-        self.item_embedding = None
+        self.users_embedding = np.array([])
+        self.items_embedding = np.array([])
 
 
     def build_embeddings(self, **kwargs) -> None:
         """
-        Perform matrix factorization to build user and item embeddings.
+        Perform matrix factorization to build class users and items embeddings.
 
-        Input(s):   - **kwargs: Keyword arguments for the matrix factorization model.
-
-        Output(s):  - None
+        Input(s):   **kwargs:   The user for which we want to get the recommendations
+        Output(s):  None
         """
 
         if self.reviews is None:
@@ -46,42 +49,62 @@ class RecommenderSystem():
         logger.debug("Building embeddings...")
 
         wmf = WeightedMatrixFactorization(ratings=self.reviews, **kwargs)
-        self.user_embedding, self.item_embedding = wmf.fit()
+        self.users_embedding, self.items_embedding = wmf.fit()
 
 
-    def save(self, filename:str=None) -> None:
+    def save(self, filename:str="") -> None:
+        """
+        Save the RecommenderSystem object to the filesystem.
+
+        Input(s):   filename:   The name of the file to save the object to.
+                                Default: {self.name}.pkl
+        Output(s):  None
+        """
     
         logger.debug(f"Saving {self.name} to filesystem...")
 
+        # If no filename is provided, use the default one
         if not filename:
-            logger.debug("No filename provided, using default (object_name.pkl)...")
+            logger.debug(f"No filename provided, using default {self.name}.pkl...")
             filename = f"{self.name}.pkl"
 
         with open(filename, 'wb') as f:
             pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
 
-    def load(self, filename:str=None) -> object:
-            
-            logger.debug(f"Loading {self.name} from filesystem...")
-    
-            if not filename:
-                logger.debug("No filename provided, using default (object_name.pkl)...")
-                filename = f"{self.name}.pkl"
-    
-            with open(filename, 'rb') as f:
-                return pickle.load(f)
 
+    def load(self, filename:str="") -> object:
+        """
+        Load the RecommenderSystem object from the filesystem.
 
-    def print_user_chart(self, user:str=None, first_n:int=10) -> None:
-
-        user_chart = self.get_user_chart(user, first_n)
+        Input(s):   filename:   The name of the file to load the object from.
+                                Default: {self.name}.pkl
+        Output(s):  RecommenderSystem object
+        """
         
-        print(tabulate(zip(range(1,first_n+1), user_chart[:,0], user_chart[:,1]), headers=['Position', 'Item Name', 'Rating'], tablefmt='rst'))
+        logger.debug(f"Loading {self.name} from filesystem...")
 
-        return
+        # If no filename is provided, use the default one
+        if not filename:
+            logger.debug(f"No filename provided, using default {self.name}.pkl...")
+            filename = f"{self.name}.pkl"
 
-    def get_user_chart(self, user:str=None, first_n:int=10):
-        # Retunr the list of items that the user has reviewed,
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+
+
+    def get_user_chart(self, user:str="", chart_len:int=10, print_chart:bool=False) -> np.array:
+        """
+        Get the list of items that the user has reviewed, sorted by the rating.
+        If print_chart=True, print the chart in a table.
+
+        Input(s):   user:           The user for which we want to get the chart
+                    chart_len:      The number of items to return
+                    print_chart:    Whether to print the chart in a table or not.
+                                    Default: False
+
+        Output(s):  user_chart:     List of top-chart_len items reviewed by the user, sorted by rating
+        """
+        # Return the list of items that the user has reviewed,
         # sorted by the rating
 
         if user not in self.users:
@@ -98,7 +121,14 @@ class RecommenderSystem():
 
         user_reviews = [[self.items[i], user_ratings[i]] for i in reviewed_item_indices]
 
-        return np.array(sorted(user_reviews, key=lambda x: x[1], reverse=True))[:first_n]
+        user_chart = np.array(sorted(user_reviews, key=lambda x: x[1], reverse=True))[:chart_len]
+
+        if print_chart:
+
+            print(tabulate(zip(range(1,chart_len+1), user_chart[:,0], user_chart[:,1]), headers=['Position', 'Item Name', 'Rating'], tablefmt='rst'))
+            return
+
+        return user_chart
 
 
 
@@ -124,7 +154,7 @@ class RecommenderSystem():
             raise ValueError(f"The percentage of content-based suggestions must be between 0% and 100% (got {contentbased_perc*100}%).")
         
         # Check if the embeddings have been built. Otherwise, suggest to run build_embeddings()
-        if self.user_embedding.size == 0 or self.item_embedding.size == 0:
+        if self.users_embedding.size == 0 or self.items_embedding.size == 0:
             raise ValueError("User and item embeddings not found! Please run build_embeddings() first.")
         
         contentbased_items = int(contentbased_perc * recommendation_num)
@@ -133,8 +163,8 @@ class RecommenderSystem():
         # Get the user index
         user_index = self.users.index(user)
 
-        contentbased_items = self.contentbased_filtering(user_index, contentbased_items)
-        collaborative_item = self.collaborative_filtering(user_index, collaborative_items)
+        contentbased_items = self.contentbased_filtering(user=user, rec_len=contentbased_items)
+        collaborative_item = self.collaborative_filtering(user=user, rec_len=collaborative_items)
 
         print(contentbased_items)
 
@@ -159,17 +189,17 @@ class RecommenderSystem():
             raise ValueError(f"User {user} not found!")
         
         # Check if the embeddings have been built. Otherwise, suggest to run build_embeddings()
-        if self.user_embedding.size == 0 or self.item_embedding.size == 0:
+        if self.users_embedding.size == 0 or self.items_embedding.size == 0:
             raise ValueError("User and item embeddings not found! Please run build_embeddings() first.")
 
         # Get the user index
         user_idx = self.users.index(user)
 
-        target_user_embedding = self.user_embedding[user_idx]
+        target_user_embedding = self.users_embedding[user_idx]
         item_indices = np.where(np.isnan(self.reviews[user_idx]))[0]
 
         # Calculate cosine similarity between the target user and items based on content features
-        similarities = cosine_similarity([target_user_embedding], self.item_embedding[item_indices]).flatten()
+        similarities = cosine_similarity([target_user_embedding], self.items_embedding[item_indices]).flatten()
 
         # Sort items and similarities together according to content-based similarity in descending order
         sorted_indices = np.argsort(similarities)[::-1][:rec_len]
@@ -186,16 +216,13 @@ class RecommenderSystem():
             recommended_items = list(zip(*recommended_items))
 
             # Get the item names
-            recommended_movies = [self.items[i] for i in recommended_items[0]]
+            recommended_movies = [self.items[i] for i in recommended_item_indices]
 
             # Get the similarities as percentages
-            expected_similarity = [f"{sim*100:.2f}%" for sim in recommended_items[1]]
-
-            # Get the expected rating for each item
-            expected_ratings = [(self.user_embedding @ self.item_embedding.T)[user_idx][i] for i in recommended_items[0]]
+            expected_similarity = [f"{sim*100:.2f}%" for sim in recommended_items_similarities]
 
             print(f"Top {rec_len} content-based recommendations for user {user}:")
-            print(tabulate(zip(range(1,rec_len+1), recommended_movies, expected_ratings, expected_similarity), headers=['Position', 'Item Name', 'Expected rating', 'Similarity'], tablefmt='rst'))
+            print(tabulate(zip(range(1,rec_len+1), recommended_movies, expected_similarity), headers=['Position', 'Item Name', 'Similarity'], tablefmt='rst'))
             return None
         
         return recommended_items
@@ -219,27 +246,27 @@ class RecommenderSystem():
             raise ValueError(f"User {user} not found!")
         
         # Check if the embeddings have been built. Otherwise, suggest to run build_embeddings()
-        if self.user_embedding.size == 0 or self.item_embedding.size == 0:
+        if self.users_embedding.size == 0 or self.items_embedding.size == 0:
             raise ValueError("User and item embeddings not found! Please run build_embeddings() first.")
 
         # Get the user index
         user_idx = self.users.index(user)
 
-        target_user_embedding = self.user_embedding[user_idx]
+        target_user_embedding = self.users_embedding[user_idx]
         item_indices = np.where(np.isnan(self.reviews[user_idx]))[0]
 
         # Calculate cosine similarity between the target user and other users
-        similarities = cosine_similarity([target_user_embedding], self.user_embedding).flatten()
+        similarities = cosine_similarity([target_user_embedding], self.users_embedding).flatten()
 
         # Sort users according to collaborative filtering similarity in descending order
         sorted_indices = np.argsort(similarities)[::-1][:rec_len]
         recommended_user_indices = sorted_indices[1:]  # Exclude the target user
 
         # Aggregate preferences of similar users
-        aggregated_preferences = np.sum(self.user_embedding[recommended_user_indices], axis=0)
+        aggregated_preferences = np.sum(self.users_embedding[recommended_user_indices], axis=0)
         
         # Calculate cosine similarity between the target user and items based on content features
-        similarities = cosine_similarity([aggregated_preferences], self.item_embedding[item_indices]).flatten()
+        similarities = cosine_similarity([aggregated_preferences], self.items_embedding[item_indices]).flatten()
 
         # Sort items and similarities together according to content-based similarity in descending order
         sorted_indices = np.argsort(similarities)[::-1][:rec_len]
@@ -261,11 +288,8 @@ class RecommenderSystem():
             # Get the similarities as percentages
             expected_similarity = [f"{sim*100:.2f}%" for sim in recommended_items[1]]
 
-            # Get the expected rating for each item
-            expected_ratings = [(self.user_embedding @ self.item_embedding.T)[user_idx][i] for i in recommended_items[0]]
-
             print(f"Top {rec_len} collaborative recommendations for user {user}:")
-            print(tabulate(zip(range(1,rec_len+1), recommended_movies, expected_ratings, expected_similarity), headers=['Position', 'Item Name', 'Expected rating', 'Similarity'], tablefmt='rst'))
+            print(tabulate(zip(range(1,rec_len+1), recommended_movies, expected_similarity), headers=['Position', 'Item Name', 'Similarity'], tablefmt='rst'))
             return None
         
         return recommended_items

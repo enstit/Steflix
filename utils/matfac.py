@@ -20,7 +20,7 @@ class WeightedMatrixFactorization:
     Weighted Matrix Factorization model. It uses Alternating Least Squares (ALS) to train the model.
     """
 
-    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=1.0, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=20):
+    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=10):
         """
         Initialize the weighted matrix factorization model.
 
@@ -33,14 +33,14 @@ class WeightedMatrixFactorization:
 
         Output(s):  None
         """
-        self.ratings = np.nan_to_num(np.array(ratings),0)
-        self.observed_data = ~np.isnan(ratings)
-        self.num_users, self.num_items = self.ratings.shape
-        self.weight_observed = weight_observed
-        self.weight_unobserved = weight_unobserved
-        self.num_factors = num_factors
-        self.lambda_reg = lambda_reg
-        self.num_iterations = num_iterations
+        self.ratings = np.nan_to_num(np.array(ratings),0) # Replace NaN values with 0
+        self.observed_data = ~np.isnan(ratings) # Create a boolean matrix where True values are observed ratings, False values are unobserved ratings
+        self.num_users, self.num_items = self.ratings.shape # Get the number of users and items
+        self.weight_observed = weight_observed # Weight for observed ratings
+        self.weight_unobserved = weight_unobserved # Weight for unobserved ratings
+        self.num_factors = num_factors # Number of factors
+        self.lambda_reg = lambda_reg # Regularization term
+        self.num_iterations = num_iterations # Number of iterations for the fitting process
 
         # Initialize user and item matrices with random values
         self.user_matrix = np.random.rand(self.num_users, self.num_factors)
@@ -58,18 +58,28 @@ class WeightedMatrixFactorization:
         Output(s):  - None
         """
 
+        # Check which method to use for the matrix factorization
         if method == "ALS":
+            # Train the model using ALS (Alternating Least Squares)
             self.__fit_als(**kwargs)
             return self.user_matrix, self.item_matrix
         else:
+            # Raise an error if the method is not supported
             raise NotImplementedError(f"Method {method} not supported. Please choose one of the following: ['ALS']")
 
 
     def __fit_als(self):
+        """
+        Train the weighted matrix factorization model using ALS (Alternating Least Squares).
+
+        Input(s):   None
+
+        Output(s):  None
+        """
 
         for iteration in range(self.num_iterations):
-            self.__update_user_matrix()
-            self.__update_item_matrix()
+            self.__update_users_matrix()
+            self.__update_items_matrix()
 
             # Calculate the loss (the difference between the observed ratings and the dot product of the user and item vectors)
             loss = np.sum(
@@ -83,16 +93,21 @@ class WeightedMatrixFactorization:
 
         return self.user_matrix, self.item_matrix
 
-    def __update_user_matrix(self):
+    def __update_users_matrix(self):
         """
-        Update the user matrix using ALS.
+        Update the users matrix using ALS (Alternating Least Squares).
+
+        Input(s):   None
+
+        Output(s):  None
         """
-        for user in range(self.num_users):
+
+        for user_idx in range(self.num_users):
 
             # Weight matrix for observed and unobserved values
             weight_matrix = np.diag(
                 np.where(
-                    self.observed_data[user, :],
+                    self.observed_data[user_idx, :],
                     self.weight_observed,
                     self.weight_unobserved
                 )
@@ -101,22 +116,30 @@ class WeightedMatrixFactorization:
             # Regularization term
             regularization = self.lambda_reg * np.eye(self.num_factors)
             
-            self.user_matrix[user,:] = solve(
+            # Solve the system of linear equations
+            self.user_matrix[user_idx,:] = solve(
                 self.item_matrix.T @ weight_matrix @ self.item_matrix + regularization,
-                self.item_matrix.T @ weight_matrix @ self.ratings[user, :]
+                self.item_matrix.T @ weight_matrix @ self.ratings[user_idx, :]
             )
-            
+        
+        return
 
-    def __update_item_matrix(self):
+
+    def __update_items_matrix(self):
         """
-        Update the item matrix using ALS.
+        Update the items matrix using ALS (Alternating Least Squares).
+
+        Input(s):   None
+
+        Output(s):  None
         """
-        for item in range(self.num_items):
+
+        for item_idx in range(self.num_items):
 
             # Weight matrix for observed and unobserved values
             weight_matrix = np.diag(
                 np.where(
-                    self.observed_data[:,item],
+                    self.observed_data[:,item_idx],
                     self.weight_observed,
                     self.weight_unobserved
                 )
@@ -126,18 +149,7 @@ class WeightedMatrixFactorization:
             regularization = self.lambda_reg * np.eye(self.num_factors)
 
             # Solve the system of linear equations using spsolve
-            self.item_matrix[item, :] = solve(self.user_matrix.T @ weight_matrix @ self.user_matrix + regularization,
-                                                self.user_matrix.T @ weight_matrix @ self.ratings[:, item])
-
-    def predict(self, user, item):
-        """
-        Predict the rating for a user-item pair.
-
-        Parameters:
-        - user: User index.
-        - item: Item index.
-
-        Returns:
-        - Predicted rating.
-        """
-        return np.dot(self.user_matrix[user, :], self.item_matrix[item, :].T)
+            self.item_matrix[item_idx, :] = solve(self.user_matrix.T @ weight_matrix @ self.user_matrix + regularization,
+                                                self.user_matrix.T @ weight_matrix @ self.ratings[:, item_idx])
+            
+        return
