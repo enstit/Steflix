@@ -3,7 +3,7 @@
   <h1 align="center">🍿 STEFLIX: A Movie-based Recommender System</h2>
 </div>
 
-Given a dataset, containing items and users (what items the user has liked), we built a Weighted Matrix Factorization to find the user and item embedding.
+Given a dataset containing items and users (what items the user has liked), we used Weighted Matrix Factorisation to build a Recommender System capable of suggest new documents to a user using both *Content-based filtering* and *Collaborative filtering*.
 
 The system accept as input *a user* (i.e., a set of liked documents), and return a ranking of documents.
 
