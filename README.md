@@ -3,7 +3,7 @@
   <h1 align="center">🍿 STEFLIX: A Movie-based Recommender System</h2>
 </div>
 
-**Steflix** is a Recommender System that uses Weighted Matrix Factorisation to learn embeddings from movies ratings, and uses *Content-based filtering* and *Collaborative filtering* to suggest new (ranked) movies to a the user.
+**Steflix** is a Recommender System that uses Weighted Matrix Factorisation to learn embeddings from movies ratings, and uses *Content-based filtering* and *Collaborative filtering* to suggest new (ranked) movies to the user.
 
 The Weighted Matrix Factorisation step is performed using the Alternating Least Squares algorithm[^1].
 
