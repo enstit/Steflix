@@ -28,7 +28,9 @@ class RecommenderSystem():
     def __init__(self, name:str="", reviews=None, users=None, items=None) -> None:
         self.name = name
         self.users = users if users is not None else []
+        self.users_num = len(self.users)
         self.items = items if items is not None else []
+        self.items_num = len(self.items)
         self.reviews = reviews if reviews is not None else np.array([])
 
         self.users_embedding = np.array([])
@@ -241,6 +243,10 @@ class RecommenderSystem():
                                     None if print_chart=True
         """
 
+        # Percentage of similar users (w.r.t. the total number of users)
+        # to consider for collaborative filtering
+        SIMILAR_USERS_PERC = 0.10 # 10%s
+
         # Check if the provided user exists
         if user not in self.users:
             raise ValueError(f"User {user} not found!")
@@ -258,8 +264,9 @@ class RecommenderSystem():
         # Calculate cosine similarity between the target user and other users
         similarities = cosine_similarity([target_user_embedding], self.users_embedding).flatten()
 
-        # Sort users according to collaborative filtering similarity in descending order
-        sorted_indices = np.argsort(similarities)[::-1][:rec_len]
+        # Sort users according to collaborative filtering similarity in descending order,
+        # and get the top 5% users
+        sorted_indices = np.argsort(similarities)[::-1][:int(SIMILAR_USERS_PERC*len(self.users))]
         recommended_user_indices = sorted_indices[1:]  # Exclude the target user
 
         # Aggregate preferences of similar users
