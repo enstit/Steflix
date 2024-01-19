@@ -11,7 +11,7 @@ import numpy as np
 from numpy.linalg import solve
 
 
-logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -20,18 +20,18 @@ class WeightedMatrixFactorization:
     Weighted Matrix Factorization model. It uses Alternating Least Squares (ALS) to train the model.
     """
 
-    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=10):
+    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=1.0, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=20):
         """
         Initialize the weighted matrix factorization model.
 
-        Input(s):   - ratings: Ratings matrix.
-                    - weight_observed: Weight for observed ratings. Default: 1.0
-                    - weight_unobserved: Weight for unobserved ratings. Default: 0.1
-                    - num_factors: Number of factors. Default: 100
-                    - lambda_reg: Regularization term. Default: 0.95
-                    - num_iterations: Number of iterations. Default: 10
+        Input(s):   ratings:               The ratings matrix. It must be a numpy array.
+                    weight_observed:       Weight for observed ratings. Default: 1.0
+                    weight_unobserved:     Weight for unobserved ratings. Default: 0.1
+                    num_factors:           Number of factors. Default: 100
+                    lambda_reg:            Regularization term. Default: 0.95
+                    num_iterations:        Number of iterations. Default: 10
 
-        Output(s):  - None
+        Output(s):  None
         """
         self.ratings = np.nan_to_num(np.array(ratings),0)
         self.observed_data = ~np.isnan(ratings)
@@ -60,6 +60,7 @@ class WeightedMatrixFactorization:
 
         if method == "ALS":
             self.__fit_als(**kwargs)
+            return self.user_matrix, self.item_matrix
         else:
             raise NotImplementedError(f"Method {method} not supported. Please choose one of the following: ['ALS']")
 

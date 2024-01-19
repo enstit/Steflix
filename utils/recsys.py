@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class RecommenderSystem():
 
-    def __init__(self, name:str="", reviews=None, users=list(), items=list()) -> None:
+    def __init__(self, name:str="", reviews=None, users=None, items=None) -> None:
         self.name = name
         self.users = users
         self.items = items
@@ -30,14 +30,22 @@ class RecommenderSystem():
         self.user_embedding = None
         self.item_embedding = None
 
-        if reviews is not None:
-            self.build_embeddings()
 
+    def build_embeddings(self, **kwargs) -> None:
+        """
+        Perform matrix factorization to build user and item embeddings.
 
-    def build_embeddings(self) -> None:
+        Input(s):   - **kwargs: Keyword arguments for the matrix factorization model.
+
+        Output(s):  - None
+        """
+
+        if self.reviews is None:
+            raise ValueError("No reviews found! Please provide a reviews matrix.")
+
         logger.debug("Building embeddings...")
 
-        wmf = WeightedMatrixFactorization(ratings=self.reviews)
+        wmf = WeightedMatrixFactorization(ratings=self.reviews, **kwargs)
         self.user_embedding, self.item_embedding = wmf.fit()
 
 
@@ -135,12 +143,12 @@ class RecommenderSystem():
 
     def contentbased_filtering(self, user:str="", rec_len:int=10, print_chart:bool=False) -> Union[List[Tuple[int, float]], None]:
         """
-        Recommend top-k items for a user based on user and item embeddings.
+        Recommend rec_len items for a user based on user and item embeddings.
 
         Input(s):   user:           The user for which we want to get the recommendations
                     rec_len:        The number of recommendations to return
                     print_chart:    Whether to print the recommendations in a table or not
-                                    (if not, return a list of tuples (item, similarity))
+                                    (if not, return a list of tuples (item_idx, similarity))
 
         Ouput(s):   recommended_items: List of top-k recommended item indices if print_chart=False,
                                     None if print_chart=True
@@ -178,51 +186,86 @@ class RecommenderSystem():
             recommended_items = list(zip(*recommended_items))
 
             # Get the item names
-            recommended_items[0] = [self.items[i] for i in recommended_items[0]]
+            recommended_movies = [self.items[i] for i in recommended_items[0]]
 
             # Get the similarities as percentages
-            recommended_items[1] = [f"{sim*100:.2f}%" for sim in recommended_items[1]]
+            expected_similarity = [f"{sim*100:.2f}%" for sim in recommended_items[1]]
+
+            # Get the expected rating for each item
+            expected_ratings = [(self.user_embedding @ self.item_embedding.T)[user_idx][i] for i in recommended_items[0]]
 
             print(f"Top {rec_len} content-based recommendations for user {user}:")
-            print(tabulate(zip(range(1,rec_len+1), recommended_items[0], recommended_items[1]), headers=['Position', 'Item Name', 'Similarity'], tablefmt='rst'))
+            print(tabulate(zip(range(1,rec_len+1), recommended_movies, expected_ratings, expected_similarity), headers=['Position', 'Item Name', 'Expected rating', 'Similarity'], tablefmt='rst'))
             return None
         
         return recommended_items
         
 
-    def collaborative_filtering(self, user_index, top_k=10) -> (np.ndarray, np.ndarray):
+    def collaborative_filtering(self, user:str="", rec_len:int=10, print_chart:bool=False) -> Union[List[Tuple[int, float]], None]:
         """
-        Recommend top-k items for a user based on user-based collaborative filtering.
+        Recommend rec_len items for a user, based on the ratings of similar users.
 
-        Parameters:
-        - user_index: Index of the target user
-        - user_factors: Matrix of user embeddings
-        - item_factors: Matrix of item embeddings
-        - top_k: Number of items to recommend
+        Input(s):   user:           The user for which we want to get the recommendations
+                    rec_len:        The number of recommendations to return
+                    print_chart:    Whether to print the recommendations in a table or not
+                                    (if not, return a list of tuples (item_idx, similarity))
 
-        Returns:
-        - recommended_items: List of top-k recommended item indices
+        Ouput(s):   recommended_items: List of rec_len recommended item indices if print_chart=False,
+                                    None if print_chart=True
         """
 
-        # Get the embedding for the target user
-        target_user_embedding = self.user_embedding[user_index]
+        # Check if the provided user exists
+        if user not in self.users:
+            raise ValueError(f"User {user} not found!")
+        
+        # Check if the embeddings have been built. Otherwise, suggest to run build_embeddings()
+        if self.user_embedding.size == 0 or self.item_embedding.size == 0:
+            raise ValueError("User and item embeddings not found! Please run build_embeddings() first.")
 
-        # Calculate cosine similarity between the target user and all other users
+        # Get the user index
+        user_idx = self.users.index(user)
+
+        target_user_embedding = self.user_embedding[user_idx]
+        item_indices = np.where(np.isnan(self.reviews[user_idx]))[0]
+
+        # Calculate cosine similarity between the target user and other users
         similarities = cosine_similarity([target_user_embedding], self.user_embedding).flatten()
 
-        # Get the indices of the top-k users with highest similarity (excluding the target user)
-        similar_users = np.argsort(similarities)[::-1][1:top_k+1]
+        # Sort users according to collaborative filtering similarity in descending order
+        sorted_indices = np.argsort(similarities)[::-1][:rec_len]
+        recommended_user_indices = sorted_indices[1:]  # Exclude the target user
 
-        # Aggregate the preferences of similar users to make recommendations
-        aggregated_preferences = np.sum(self.user_embedding[similar_users] * similarities[similar_users, np.newaxis], axis=0)
+        # Aggregate preferences of similar users
+        aggregated_preferences = np.sum(self.user_embedding[recommended_user_indices], axis=0)
+        
+        # Calculate cosine similarity between the target user and items based on content features
+        similarities = cosine_similarity([aggregated_preferences], self.item_embedding[item_indices]).flatten()
 
-        # Exclude items the user has already interacted with
-        item_indices = np.where(np.isnan(self.reviews[user_index]))[0]
+        # Sort items and similarities together according to content-based similarity in descending order
+        sorted_indices = np.argsort(similarities)[::-1][:rec_len]
+        recommended_item_indices = item_indices[sorted_indices]
+        recommended_items_similarities = similarities[sorted_indices]
 
-        # Get the indices of the top-k unrated items with highest aggregated preferences
-        recommended_items = item_indices[np.argsort(aggregated_preferences)[::-1][:top_k]]
+        # Return a list of tuples (item index, similarity)
+        recommended_items = list(zip(recommended_item_indices, recommended_items_similarities))
 
-        # Get the similarities of the top-k items
-        recommended_items_similarities = similarities[recommended_items]
+        if print_chart:
+            # Print the table with position, item name and similarity
 
-        return zip(recommended_items, recommended_items_similarities)
+            # Unzip the items and similarities
+            recommended_items = list(zip(*recommended_items))
+
+            # Get the item names
+            recommended_movies = [self.items[i] for i in recommended_items[0]]
+
+            # Get the similarities as percentages
+            expected_similarity = [f"{sim*100:.2f}%" for sim in recommended_items[1]]
+
+            # Get the expected rating for each item
+            expected_ratings = [(self.user_embedding @ self.item_embedding.T)[user_idx][i] for i in recommended_items[0]]
+
+            print(f"Top {rec_len} collaborative recommendations for user {user}:")
+            print(tabulate(zip(range(1,rec_len+1), recommended_movies, expected_ratings, expected_similarity), headers=['Position', 'Item Name', 'Expected rating', 'Similarity'], tablefmt='rst'))
+            return None
+        
+        return recommended_items
