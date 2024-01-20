@@ -9,6 +9,7 @@ Date:       2024-01-18
 import logging
 import numpy as np
 from numpy.linalg import solve
+from tqdm import tqdm
 
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -77,7 +78,7 @@ class WeightedMatrixFactorization:
         Output(s):  None
         """
 
-        for iteration in range(self.num_iterations):
+        for iteration in tqdm(range(self.num_iterations)):
             self.__update_users_matrix()
             self.__update_items_matrix()
 

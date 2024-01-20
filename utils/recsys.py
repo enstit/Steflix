@@ -33,6 +33,10 @@ class RecommenderSystem():
         self.items_num = len(self.items)
         self.reviews = reviews if reviews is not None else np.array([])
 
+        # The reviews matrix must be a numpy array of shape (users_num, items_num)
+        assert self.reviews.shape == (self.users_num, self.items_num), f"Reviews matrix shape must be ({self.users_num}, {self.items_num})!"
+
+        # Initialize users and items embeddings as empty numpy arrays
         self.users_embedding = np.array([])
         self.items_embedding = np.array([])
 
@@ -42,6 +46,7 @@ class RecommenderSystem():
         Perform matrix factorization to build class users and items embeddings.
 
         Input(s):   **kwargs:   The user for which we want to get the recommendations
+
         Output(s):  None
         """
 
@@ -133,46 +138,6 @@ class RecommenderSystem():
         return user_chart
 
 
-
-    def get_user_recommendations(self, user:str="", recommendation_num:int=10, contentbased_perc:float=.5):
-        """
-        Recommend top-k items for a user based on user and item embeddings.
-
-        Input(s):   user:               The user for which we want to get the recommendations
-                    recommendation_num: The number of recommendations to return
-                    contentbased_perc:  The percentage of content-based suggestions to return
-
-        Output(s):  recommended_items: List of top-k recommended item indices
-
-        Example:    get_user_recommendations(user="User 100", top_k=10, contentbased_perc=.6)
-        """
-
-        # Check if the provided user exists
-        if user not in self.users:
-            raise ValueError(f"User {user} not found!")
-
-        # Check if the provided percentage is valid
-        if contentbased_perc < 0 or contentbased_perc > 1:
-            raise ValueError(f"The percentage of content-based suggestions must be between 0% and 100% (got {contentbased_perc*100}%).")
-        
-        # Check if the embeddings have been built. Otherwise, suggest to run build_embeddings()
-        if self.users_embedding.size == 0 or self.items_embedding.size == 0:
-            raise ValueError("User and item embeddings not found! Please run build_embeddings() first.")
-        
-        contentbased_items = int(contentbased_perc * recommendation_num)
-        collaborative_items = recommendation_num - contentbased_items
-
-        # Get the user index
-        user_index = self.users.index(user)
-
-        contentbased_items = self.contentbased_filtering(user=user, rec_len=contentbased_items)
-        collaborative_item = self.collaborative_filtering(user=user, rec_len=collaborative_items)
-
-        print(contentbased_items)
-
-        return None
-
-
     def contentbased_filtering(self, user:str="", rec_len:int=10, print_chart:bool=False) -> Union[List[Tuple[int, float]], None]:
         """
         Recommend rec_len items for a user based on user and item embeddings.
@@ -197,7 +162,10 @@ class RecommenderSystem():
         # Get the user index
         user_idx = self.users.index(user)
 
+        # Get the user embedding
         target_user_embedding = self.users_embedding[user_idx]
+
+        # Get the indices of the items that the user has not reviewed
         item_indices = np.where(np.isnan(self.reviews[user_idx]))[0]
 
         # Calculate cosine similarity between the target user and items based on content features
@@ -227,6 +195,7 @@ class RecommenderSystem():
             print(tabulate(zip(range(1,rec_len+1), recommended_movies, expected_similarity), headers=['Position', 'Item Name', 'Similarity'], tablefmt='rst'))
             return None
         
+        # Return a list of tuples (item index, similarity)
         return recommended_items
         
 
@@ -258,7 +227,10 @@ class RecommenderSystem():
         # Get the user index
         user_idx = self.users.index(user)
 
+        # Get the user embedding
         target_user_embedding = self.users_embedding[user_idx]
+
+        # Get the indices of the items that the user has not reviewed
         item_indices = np.where(np.isnan(self.reviews[user_idx]))[0]
 
         # Calculate cosine similarity between the target user and other users
@@ -272,7 +244,7 @@ class RecommenderSystem():
         # Aggregate preferences of similar users
         aggregated_preferences = np.sum(self.users_embedding[recommended_user_indices], axis=0)
         
-        # Calculate cosine similarity between the target user and items based on content features
+        # Calculate cosine similarity between the target user group and items based on content features
         similarities = cosine_similarity([aggregated_preferences], self.items_embedding[item_indices]).flatten()
 
         # Sort items and similarities together according to content-based similarity in descending order
@@ -299,4 +271,5 @@ class RecommenderSystem():
             print(tabulate(zip(range(1,rec_len+1), recommended_movies, expected_similarity), headers=['Position', 'Item Name', 'Similarity'], tablefmt='rst'))
             return None
         
+        # Return a list of tuples (item index, similarity)
         return recommended_items
