@@ -13,7 +13,7 @@ The [utils](./utils/) folder contains source code used for the project:
 * the [matfac.py](./utils/matfac.py) script contains the declaration of the `WeightedMatrixFactorization` class, used by the Recommender System to calculate users and items embeddings starting from the (sparse) reviews matrix of users and items;
 * the [recsys.py](./utils/recsys.py) script contains the declaration of the `RecommenderSystem` class. It uses the above embeddings to perform *Content-based filtering* and *Collaborative filtering* of any user of the system.
 
-In the [RecommenderSystem.ipynb](./RecommenderSystem.ipynb) Jupyter notebook, a `RecommenderSystem` is built starting from the reviews of 610 users to 9737 movies (data is taken from the files inside the [data](./data/) folder). From the reviews matrix, the tastes of a specific user have been analyzed as an example, and suggestions have been made that seem to reflect what is expected from a recommendation engine.
+In the [RecommenderSystem.ipynb](./RecommenderSystem.ipynb) Jupyter notebook, a `RecommenderSystem` is built starting from the reviews of 610 users to 9737 movies (data is taken from the files inside the [data](./data/) folder[^1]). From the reviews matrix, the tastes of a specific user have been analyzed as an example, and suggestions have been made that seem to reflect what is expected from a recommendation engine.
 
 
 ## Theoretical stuff
@@ -52,10 +52,16 @@ The algorithm used for this decomposition is the Weighted Alternating Least Squa
 
 Basically, with this algorithm we optimise the difference between the original matrix $C$, and its approximation $C'$ by also weighting the observed and unobserved values using different values $w_{i,j}$ and $w_{0}$ to reflect the uncertainty in the projection.
 
+Once we obtain this new matrices, we can use them to compute similarities (in our case, *cosine similarity*) of the rated items with respect to
+* the unrated items, finding the ones nearest to a user tastes (*Content-based filtering*);
+* the other users, finding clusters of people with similar interests (*Collaborative filtering*),from which we can extract new items to recommend to the user;
+* a mix of these two methods, using an hybrid approach.
+
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 
-[^1]: https://stanford.edu/~rezab/classes/cme323/S15/notes/lec14.pdf
+[^1]: https://www.kaggle.com/datasets/gargmanas/movierecommenderdataset/data
+[^2]: https://stanford.edu/~rezab/classes/cme323/S15/notes/lec14.pdf
