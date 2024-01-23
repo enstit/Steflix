@@ -44,7 +44,7 @@ $$
 C \approx U_{M\times k} \times V_{N\times k}^{T}.
 $$
 
-The algorithm used for this decomposition is the Weighted Alternating Least Squares algorithm[^1], in which:
+The algorithm used for this decomposition is the Weighted Alternating Least Squares algorithm[^2], in which:
 1. we start with $U$ and $V$ randomly generated;
 2. we fix $U$ and fin, by solving a linear system, the best $V$;
 3. we fix $V$ and fin, by solving a linear system, the best $U$;
