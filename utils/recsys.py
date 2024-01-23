@@ -33,9 +33,6 @@ class RecommenderSystem():
         self.items_num = len(self.items)
         self.reviews = reviews if reviews is not None else np.array([])
 
-        # The reviews matrix must be a numpy array of shape (users_num, items_num)
-        assert self.reviews.shape == (self.users_num, self.items_num), f"Reviews matrix shape must be ({self.users_num}, {self.items_num})!"
-
         # Initialize users and items embeddings as empty numpy arrays
         self.users_embedding = np.array([])
         self.items_embedding = np.array([])
@@ -56,7 +53,8 @@ class RecommenderSystem():
         logger.debug("Building embeddings...")
 
         wmf = WeightedMatrixFactorization(ratings=self.reviews, **kwargs)
-        self.users_embedding, self.items_embedding = wmf.fit()
+        wmf.fit()
+        self.users_embedding, self.items_embedding = wmf.get_embeddings()
 
 
     def save(self, filename:str="") -> None:

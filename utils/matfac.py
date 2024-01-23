@@ -8,6 +8,7 @@ Date:       2024-01-18
 
 import logging
 import numpy as np
+from typing import List, Tuple, Union
 from numpy.linalg import solve
 from tqdm import tqdm
 
@@ -21,7 +22,7 @@ class WeightedMatrixFactorization():
     Weighted Matrix Factorization class
     """
 
-    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=10):
+    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=10) -> None:
         """
         Initialize the weighted matrix factorization model.
 
@@ -43,12 +44,30 @@ class WeightedMatrixFactorization():
         self.lambda_reg = lambda_reg # Regularization term
         self.num_iterations = num_iterations # Number of iterations for the fitting process
 
+        self.is_fitted = False # Flag to check if the model has been fitted
+
         # Initialize user and item matrices with random values
         self.user_matrix = np.random.rand(self.num_users, self.num_factors)
         self.item_matrix = np.random.rand(self.num_items, self.num_factors)
 
 
-    def fit(self, method:str="ALS", **kwargs):
+    def get_embeddings(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get the user and item embeddings.
+
+        Input(s):   None
+
+        Output(s):  - user_matrix: The user embeddings matrix.
+                    - item_matrix: The item embeddings matrix.
+        """
+
+        if not self.is_fitted:
+            raise ValueError("The ratings matrix has not been factorized yet. Please call the fit() method first.")
+
+        return self.user_matrix, self.item_matrix
+
+
+    def fit(self, method:str="ALS", **kwargs) -> None:
         """
         Train the weighted matrix factorization model using one of the
         implemented methods.
@@ -63,13 +82,14 @@ class WeightedMatrixFactorization():
         if method == "ALS":
             # Train the model using ALS (Alternating Least Squares)
             self.__fit_als(**kwargs)
-            return self.user_matrix, self.item_matrix
+            self.is_fitted = True # Set the flag to True to indicate that the model has been fitted
+            return
         else:
             # Raise an error if the method is not supported
-            raise NotImplementedError(f"Method {method} not supported. Please choose one of the following: ['ALS']")
+            raise NotImplementedError(f"Method {method} not supported. Please choose one of the followings: 'ALS'.")
 
 
-    def __fit_als(self):
+    def __fit_als(self) -> Tuple[np.ndarray, np.ndarray]:
         """
         Train the weighted matrix factorization model using ALS (Alternating Least Squares).
 
@@ -94,7 +114,7 @@ class WeightedMatrixFactorization():
 
         return self.user_matrix, self.item_matrix
 
-    def __update_users_matrix(self):
+    def __update_users_matrix(self) -> None:
         """
         Update the users matrix using ALS (Alternating Least Squares).
 
@@ -126,7 +146,7 @@ class WeightedMatrixFactorization():
         return
 
 
-    def __update_items_matrix(self):
+    def __update_items_matrix(self) -> None:
         """
         Update the items matrix using ALS (Alternating Least Squares).
 
