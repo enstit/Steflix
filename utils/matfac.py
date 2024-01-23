@@ -16,9 +16,9 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 logger = logging.getLogger(__name__)
 
 
-class WeightedMatrixFactorization:
+class WeightedMatrixFactorization():
     """
-    Weighted Matrix Factorization model. It uses Alternating Least Squares (ALS) to train the model.
+    Weighted Matrix Factorization class
     """
 
     def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=10):
