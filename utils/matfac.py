@@ -22,7 +22,7 @@ class WeightedMatrixFactorization():
     Weighted Matrix Factorization class
     """
 
-    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.95, num_iterations:int=10) -> None:
+    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.01, num_iterations:int=10) -> None:
         """
         Initialize the weighted matrix factorization model.
 
@@ -30,7 +30,7 @@ class WeightedMatrixFactorization():
                     weight_observed:       Weight for observed ratings. Default: 1.0
                     weight_unobserved:     Weight for unobserved ratings. Default: 0.1
                     num_factors:           Number of factors. Default: 100
-                    lambda_reg:            Regularization term. Default: 0.95
+                    lambda_reg:            Regularization term. Default: 0.01
                     num_iterations:        Number of iterations. Default: 10
 
         Output(s):  None
