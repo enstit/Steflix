@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python3
 """
+Weighted Matrix Factorization class to factorize a ratings matrix into two 
+matrices, representing the users embeddings and the items embeddings.
+The optimization is performed using WALS (Weighted Alternating Least Squares).
+
 Author(s):  Enrico Stefanel (enrico.stefanel@studenti.units.it)
 Date:       2024-01-18
 """
@@ -67,31 +71,32 @@ class WeightedMatrixFactorization():
         return self.user_matrix, self.item_matrix
 
 
-    def fit(self, method:str="ALS", **kwargs) -> None:
+    def fit(self, method:str="WALS", **kwargs) -> None:
         """
         Train the weighted matrix factorization model using one of the
         implemented methods.
 
-        Input(s):   - method: Method to use for training. Default: ALS (Alternating Least Squares)
+        Input(s):   - method:   Method to use for training. Default: WALS
+                                (Weighted Alternating Least Squares)
                     - **kwargs: Keyword arguments for the training method.
 
         Output(s):  - None
         """
 
         # Check which method to use for the matrix factorization
-        if method == "ALS":
-            # Train the model using ALS (Alternating Least Squares)
-            self.__fit_als(**kwargs)
+        if method == "WALS":
+            # Train the model using WALS (Weighted Alternating Least Squares)
+            self.__fit_wals(**kwargs)
             self.is_fitted = True # Set the flag to True to indicate that the model has been fitted
             return
         else:
             # Raise an error if the method is not supported
-            raise NotImplementedError(f"Method {method} not supported. Please choose one of the followings: 'ALS'.")
+            raise NotImplementedError(f"Method {method} not supported. Please choose one of the followings: 'WALS'.")
 
 
-    def __fit_als(self) -> Tuple[np.ndarray, np.ndarray]:
+    def __fit_wals(self) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Train the weighted matrix factorization model using ALS (Alternating Least Squares).
+        Train the weighted matrix factorization model using WALS (Weighted Alternating Least Squares).
 
         Input(s):   None
 
@@ -102,7 +107,8 @@ class WeightedMatrixFactorization():
             self.__update_users_matrix()
             self.__update_items_matrix()
 
-            # Calculate the loss (the difference between the observed ratings and the dot product of the user and item vectors)
+            # Calculate the loss (the difference between the observed ratings
+            # and the dot product of the user and item vectors)
             loss = np.sum(
                 np.where(
                     self.observed_data,
@@ -116,7 +122,7 @@ class WeightedMatrixFactorization():
 
     def __update_users_matrix(self) -> None:
         """
-        Update the users matrix using ALS (Alternating Least Squares).
+        Update the users matrix using WALS (Weighted Alternating Least Squares).
 
         Input(s):   None
 
@@ -148,7 +154,7 @@ class WeightedMatrixFactorization():
 
     def __update_items_matrix(self) -> None:
         """
-        Update the items matrix using ALS (Alternating Least Squares).
+        Update the items matrix using WALS (Weighted Alternating Least Squares).
 
         Input(s):   None
 
