@@ -8,6 +8,20 @@
 
 ## Usage
 
+First of all, clone the repository to your local machine:
+
+```bash
+mkdir project/folder
+cd project/folder
+git clone git@github.com:enstit/Steflix.git
+```
+
+and then install the required Python packages in order to correctly run the code:
+
+```bash
+pip install -r requirements.txt
+```
+
 The [utils](./utils/) folder contains source code used for the project:
 
 * the [matfac.py](./utils/matfac.py) script contains the declaration of the `WeightedMatrixFactorization` class, used by the Recommender System to calculate users and items embeddings starting from the (sparse) reviews matrix of users and items;
@@ -41,7 +55,7 @@ It turns out that we don't need to know what this *features* are at all. Indeed,
 
 We can find two matrices $U$ and $V$ (respectively, the *users embedding* and the *items embedding*) with $k$ columns (with $k$ the number of *latent factors*) such that
 $$
-C \approx U_{M\times k} \times V_{N\times k}^{T}.
+C \approx U_{M\times k} \cdot V_{N\times k}^{T}.
 $$
 
 The algorithm used for this decomposition is the Weighted Alternating Least Squares algorithm[^2], in which:
