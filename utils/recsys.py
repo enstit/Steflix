@@ -212,7 +212,7 @@ class RecommenderSystem():
 
         # Percentage of similar users (w.r.t. the total number of users)
         # to consider for collaborative filtering
-        SIMILAR_USERS_PERC = 0.10 # 10%s
+        SIMILAR_USERS_PERC = 0.10 # 10%
 
         # Check if the provided user exists
         if user not in self.users:
