@@ -12,7 +12,7 @@ Date:       2024-01-18
 
 import logging
 import numpy as np
-from typing import List, Tuple, Union
+from typing import Tuple
 from numpy.linalg import solve
 from tqdm import tqdm
 
@@ -23,10 +23,11 @@ logger = logging.getLogger(__name__)
 
 class WeightedMatrixFactorization():
     """
-    Weighted Matrix Factorization class
+    Weighted Matrix Factorization class to factorize a ratings matrix into two
+    matrices, representing the users embeddings and the items embeddings.
     """
 
-    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.01, num_iterations:int=10) -> None:
+    def __init__(self, ratings, weight_observed:float=1.0, weight_unobserved:float=0.1, num_factors:int=100, lambda_reg:float=0.05, num_iterations:int=10) -> None:
         """
         Initialize the weighted matrix factorization model.
 
@@ -34,7 +35,7 @@ class WeightedMatrixFactorization():
                     weight_observed:       Weight for observed ratings. Default: 1.0
                     weight_unobserved:     Weight for unobserved ratings. Default: 0.1
                     num_factors:           Number of factors. Default: 100
-                    lambda_reg:            Regularization term. Default: 0.01
+                    lambda_reg:            Regularization term. Default: 0.05
                     num_iterations:        Number of iterations. Default: 10
 
         Output(s):  None
@@ -135,8 +136,8 @@ class WeightedMatrixFactorization():
             weight_matrix = np.diag(
                 np.where(
                     self.observed_data[user_idx, :],
-                    self.weight_observed,
-                    self.weight_unobserved
+                    self.weight_observed / sum(self.observed_data[user_idx, :]), # Normalize the weight for observed ratings
+                    self.weight_unobserved / sum(~self.observed_data[user_idx, :]) # Normalize the weight for unobserved ratings
                 )
             )
 
@@ -167,8 +168,8 @@ class WeightedMatrixFactorization():
             weight_matrix = np.diag(
                 np.where(
                     self.observed_data[:,item_idx],
-                    self.weight_observed,
-                    self.weight_unobserved
+                    self.weight_observed / sum(self.observed_data[:, item_idx]) , # Normalize the weight for observed ratings
+                    self.weight_unobserved / sum(~self.observed_data[:, item_idx]) # Normalize the weight for unobserved ratings
                 )
             )
 
