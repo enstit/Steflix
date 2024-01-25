@@ -27,7 +27,7 @@ The [utils](./utils/) folder contains source code used for the project:
 * the [matfac.py](./utils/matfac.py) script contains the declaration of the `WeightedMatrixFactorization` class, used by the Recommender System to calculate users and items embeddings starting from the (sparse) reviews matrix of users and items;
 * the [recsys.py](./utils/recsys.py) script contains the declaration of the `RecommenderSystem` class. It uses the above embeddings to perform *Content-based filtering* and *Collaborative filtering* of any user of the system.
 
-In the [RecommenderSystem.ipynb](./RecommenderSystem.ipynb) Jupyter notebook, a `RecommenderSystem` is built starting from the reviews of 610 users to 9737 movies (data is taken from the files inside the [data](./data/) folder[^1]). From the reviews matrix, the tastes of a specific user have been analyzed as an example, and suggestions have been made that seem to reflect what is expected from a recommendation engine.
+In the [RecommenderSystem.ipynb](./RecommenderSystem.ipynb) Jupyter notebook, a `RecommenderSystem` is built starting from the reviews of 943 users to 1682 movies (data is taken from the [MovieLens 100k](https://grouplens.org/datasets/movielens/latest/) dataset[^1]). From the reviews matrix, the tastes of a specific user have been analyzed as an example, and suggestions have been made that seem to reflect what is expected from a recommendation engine.
 
 
 ## Theoretical stuff
@@ -77,5 +77,5 @@ Once we obtain this new matrices, we can use them to compute similarities (in ou
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 
-[^1]: https://www.kaggle.com/datasets/gargmanas/movierecommenderdataset/data
+[^1]: F. Maxwell Harper and Joseph A. Konstan. 2015. The MovieLens Datasets: History and Context. ACM Transactions on Interactive Intelligent Systems (TiiS) 5, 4: 19:1–19:19. [https://doi.org/10.1145/2827872](https://doi.org/10.1145/2827872)
 [^2]: https://stanford.edu/~rezab/classes/cme323/S15/notes/lec14.pdf
