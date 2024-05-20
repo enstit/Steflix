@@ -54,6 +54,7 @@ But what exactly are the *features* that a particular user considers when rating
 It turns out that we don't need to know what this *features* are at all. Indeed, we call them *latent features*.
 
 We can find two matrices $U$ and $V$ (respectively, the *users embedding* and the *items embedding*) with $k$ columns (with $k$ the number of *latent factors*) such that
+
 $$
 C \approx U_{M\times k} \cdot V_{N\times k}^{T}.
 $$
